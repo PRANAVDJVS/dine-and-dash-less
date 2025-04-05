@@ -1,1 +1,4 @@
+
 project_id = "ptpnbtsdqwiqlndytrnh"
+[functions.get_user_email]
+verify_jwt = true

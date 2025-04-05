@@ -7,7 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { MenuItem as MenuItemType } from "@/types/database";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { IndianRupee } from "lucide-react";
+import { IndianRupee, ShoppingCart } from "lucide-react";
 
 interface MenuItemProps {
   item: MenuItemType;
@@ -18,6 +18,7 @@ interface MenuItemProps {
 
 export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps) {
   const [hovered, setHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
   
@@ -37,6 +38,7 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
     }
     
     try {
+      setIsLoading(true);
       await addToCart(item, 1);
       toast({
         title: "Added to cart",
@@ -50,6 +52,8 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
         description: "There was an error adding this item to your cart.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -116,11 +120,15 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
               className={cn(
                 "button-hover w-full py-2 px-4 rounded-md border border-amber-400 bg-amber-50",
                 "font-medium text-sm transition-all duration-300",
-                "hover:bg-amber-600 hover:text-white"
+                "hover:bg-amber-600 hover:text-white",
+                "flex items-center justify-center gap-2",
+                isLoading && "opacity-70 cursor-not-allowed"
               )}
               onClick={handleAddToCart}
+              disabled={isLoading}
             >
-              Add to Order
+              <ShoppingCart className="h-4 w-4" />
+              {isLoading ? "Adding..." : "Add to Cart"}
             </button>
           </div>
         </div>

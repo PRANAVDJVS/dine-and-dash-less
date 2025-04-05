@@ -70,10 +70,9 @@ export function Footer() {
           <MotionDiv animation="fade-in" delay={300}>
             <h4 className="text-sm font-medium uppercase tracking-wider mb-4">Contact</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li>123 Restaurant Street</li>
-              <li>New York, NY 10001</li>
+              <li>Flavours of India, Benz Circle, Vijayawada</li>
               <li>info@flavoursofindia.com</li>
-              <li>(123) 456-7890</li>
+              <li>6309667777</li>
             </ul>
           </MotionDiv>
         </div>
