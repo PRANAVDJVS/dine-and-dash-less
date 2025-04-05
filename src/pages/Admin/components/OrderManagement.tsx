@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +40,8 @@ interface OrderType {
   }[];
 }
 
-export default function OrderManagement() {
+// Change to default export to match the import in Dashboard.tsx
+const OrderManagement = () => {
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -313,4 +313,6 @@ export default function OrderManagement() {
       </div>
     </div>
   );
-}
+};
+
+export default OrderManagement;

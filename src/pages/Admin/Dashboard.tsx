@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MenuManagement } from "./components/MenuManagement";
-import { OrderManagement } from "./components/OrderManagement";
+import OrderManagement from "./components/OrderManagement"; // Fixed this import
 import { AccessDenied } from "./components/AccessDenied";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
