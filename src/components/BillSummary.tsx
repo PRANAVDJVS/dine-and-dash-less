@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useOrder } from '@/context/OrderContext';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from '@/components/ui/label';
 import { Printer, CreditCard, DollarSign, X, Check } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 const BillSummary: React.FC = () => {
   const { activeOrder, calculateBill, completeOrder, cancelOrder } = useOrder();

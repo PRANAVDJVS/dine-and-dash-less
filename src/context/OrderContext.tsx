@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState } from "react";
 import { MenuItem } from "../data/menuData";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export interface OrderItem {
   id: string;
@@ -55,7 +55,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const createOrder = (tableNumber: number) => {
     // Check if table is available
     const tableIndex = tables.findIndex(t => t.number === tableNumber);
-    if (tableIndex === -1 || tables[tableIndex].status === 'occupied') {
+    if (tableIndex === -1 || tables[tableIndex].status !== 'available') {
       toast.error('This table is not available');
       return;
     }
@@ -75,7 +75,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Update table status
     const updatedTables = [...tables];
-    updatedTables[tableIndex].status = 'occupied';
+    updatedTables[tableIndex] = { ...updatedTables[tableIndex], status: 'occupied' as const };
     setTables(updatedTables);
 
     // Set as active order
@@ -214,7 +214,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const tableIndex = tables.findIndex(t => t.number === activeOrder.tableNumber);
       if (tableIndex > -1) {
         const updatedTables = [...tables];
-        updatedTables[tableIndex].status = 'available';
+        updatedTables[tableIndex] = { ...updatedTables[tableIndex], status: 'available' as const };
         setTables(updatedTables);
       }
     }
@@ -232,7 +232,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const tableIndex = tables.findIndex(t => t.number === activeOrder.tableNumber);
       if (tableIndex > -1) {
         const updatedTables = [...tables];
-        updatedTables[tableIndex].status = 'available';
+        updatedTables[tableIndex] = { ...updatedTables[tableIndex], status: 'available' as const };
         setTables(updatedTables);
       }
     }
