@@ -1,278 +1,316 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Loader2, Search, IndianRupee } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { SearchBar } from "./MenuTable/SearchBar";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-type OrderStatus = "pending" | "preparing" | "delivered" | "cancelled";
+// Define the allowed order status values
+type OrderStatus = "pending" | "preparing" | "ready" | "delivered" | "cancelled";
 
-interface OrderItemType {
-  id: string;
-  menu_item?: {
-    name: string;
-    price: number;
-  };
-  quantity: number;
-  price: number;
-}
-
+// Define the order type with the correct status type
 interface OrderType {
   id: string;
   user_id: string;
+  user_email?: string;
   status: OrderStatus;
   total_amount: number;
   delivery_address: string | null;
   contact_number: string | null;
   created_at: string;
-  items: OrderItemType[];
-  user_email?: string;
+  updated_at: string;
+  items: {
+    id: string;
+    order_id: string;
+    menu_item_id: string;
+    quantity: number;
+    price: number;
+    created_at: string;
+    menu_item: {
+      name: string;
+      price: number;
+    };
+  }[];
 }
 
-export function OrderManagement() {
+export default function OrderManagement() {
   const [orders, setOrders] = useState<OrderType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const { toast } = useToast();
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
-    setIsLoading(true);
     try {
-      // Fetch orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      setLoading(true);
 
-      if (ordersError) throw ordersError;
+      // Fetch all orders
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      // Get order items for each order
+      if (orderError) throw orderError;
+
+      // Fetch order items for each order with menu item details
       const ordersWithItems = await Promise.all(
-        (ordersData || []).map(async (order) => {
-          // Get order items
-          const { data: itemsData, error: itemsError } = await supabase
-            .from("order_items")
-            .select("*, menu_item:menu_items(name, price)")
-            .eq("order_id", order.id);
+        (orderData || []).map(async (order) => {
+          const { data: itemsData } = await supabase
+            .from('order_items')
+            .select(`
+              *,
+              menu_item:menu_items(name, price)
+            `)
+            .eq('order_id', order.id);
 
-          if (itemsError) throw itemsError;
+          // Get user details for each order
+          const { data: userData } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', order.user_id)
+            .single();
 
           // Get user email
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-            order.user_id
-          );
-
-          let userEmail = "Unknown";
-          if (!userError && userData?.user) {
-            userEmail = userData.user.email || "No email";
-          }
-
+          const { data: userAuthData } = await supabase.auth.admin.getUserById(order.user_id);
+          
           return {
             ...order,
+            user_email: userAuthData?.user?.email || 'Unknown',
+            user_name: userData?.full_name || 'Unknown',
             items: itemsData || [],
-            user_email: userEmail,
           };
         })
       );
 
-      setOrders(ordersWithItems);
+      // Convert to the correct OrderType with proper status typing
+      const typedOrders: OrderType[] = ordersWithItems.map(order => ({
+        ...order,
+        status: order.status as OrderStatus,
+        items: order.items || []
+      }));
+
+      setOrders(typedOrders);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error('Error fetching orders:', error);
       toast({
-        title: "Error",
-        description: "Failed to load orders",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load orders',
+        variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
-        .from("orders")
+        .from('orders')
         .update({ status: newStatus })
-        .eq("id", orderId);
+        .eq('id', orderId);
 
       if (error) throw error;
 
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus as OrderStatus } : order
+      // Update the order in local state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
 
       toast({
-        title: "Status updated",
+        title: 'Status updated',
         description: `Order status changed to ${newStatus}`,
       });
     } catch (error) {
-      console.error("Error updating order status:", error);
+      console.error('Error updating order status:', error);
       toast({
-        title: "Error",
-        description: "Failed to update order status",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update order status',
+        variant: 'destructive',
       });
     }
   };
 
-  // Filter orders based on search query
-  const filteredOrders = orders.filter((order) => {
-    const searchLower = searchQuery.toLowerCase();
+  const toggleOrderExpanded = (orderId: string) => {
+    setExpandedOrders(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    
     return (
-      order.id.toLowerCase().includes(searchLower) ||
-      order.user_email?.toLowerCase().includes(searchLower) ||
-      order.status.toLowerCase().includes(searchLower) ||
-      order.delivery_address?.toLowerCase().includes(searchLower) ||
-      order.contact_number?.toLowerCase().includes(searchLower)
+      order.id.toLowerCase().includes(query) ||
+      (order.user_email && order.user_email.toLowerCase().includes(query)) ||
+      (order.contact_number && order.contact_number.toLowerCase().includes(query)) ||
+      order.status.toLowerCase().includes(query)
     );
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-medium">Order Management</h1>
-        <Button onClick={fetchOrders}>Refresh Orders</Button>
-      </div>
+  const getStatusBadgeColor = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'preparing': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
+      case 'delivered': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search orders..."
-          className="pl-9"
+  if (loading) {
+    return <div className="text-center py-12">Loading orders...</div>;
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <SearchBar
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={setSearchQuery}
+          placeholder="Search orders..."
         />
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-8 border rounded-md bg-muted/20">
-          <p className="text-muted-foreground">No orders found</p>
-        </div>
-      ) : (
-        <div className="border rounded-md overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.user_email}</div>
-                      {order.contact_number && (
-                        <div className="text-xs text-muted-foreground">
-                          {order.contact_number}
-                        </div>
-                      )}
-                      {order.delivery_address && (
-                        <div className="text-xs text-muted-foreground mt-1 max-w-48 truncate">
-                          {order.delivery_address}
-                        </div>
-                      )}
+      <div className="space-y-4">
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg border">
+            <h3 className="text-lg font-medium">No orders found</h3>
+            <p className="text-muted-foreground mt-1">
+              {searchQuery ? "Try changing your search query" : "No orders have been placed yet"}
+            </p>
+          </div>
+        ) : (
+          filteredOrders.map((order) => (
+            <div key={order.id} className="bg-white rounded-lg border overflow-hidden">
+              <div className="p-4 flex justify-between items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium">Order #{order.id.substring(0, 8)}...</h3>
+                    <Badge className={getStatusBadgeColor(order.status)}>
+                      {order.status}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {new Date(order.created_at).toLocaleString()}
+                  </div>
+                  <div className="text-sm mt-1">
+                    {order.user_email || 'Unknown user'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="font-medium">₹{order.total_amount}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {(order.items || []).reduce((sum, item) => sum + item.quantity, 0)} items
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="text-sm flex justify-between">
-                          <span>
-                            {item.quantity} x {item.menu_item?.name || "Unknown Item"}
-                          </span>
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Update Status
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => updateOrderStatus(order.id, "pending")}
+                      >
+                        Pending
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => updateOrderStatus(order.id, "preparing")}
+                      >
+                        Preparing
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => updateOrderStatus(order.id, "ready")}
+                      >
+                        Ready
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => updateOrderStatus(order.id, "delivered")}
+                      >
+                        Delivered
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => updateOrderStatus(order.id, "cancelled")}
+                      >
+                        Cancelled
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleOrderExpanded(order.id)}
+                  >
+                    {expandedOrders[order.id] ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {expandedOrders[order.id] && (
+                <div className="bg-gray-50 p-4 border-t">
+                  <div className="mb-4">
+                    <div className="text-sm font-medium mb-1">Delivery Address</div>
+                    <div className="text-sm">
+                      {order.delivery_address || 'Not provided'}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="text-sm font-medium mb-1">Contact</div>
+                    <div className="text-sm">
+                      {order.contact_number || 'Not provided'}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-sm font-medium mb-2">Order Items</div>
+                    <div className="space-y-2">
+                      {(order.items || []).map((item) => (
+                        <div key={item.id} className="flex justify-between items-center bg-white p-2 rounded border">
+                          <div className="flex-1">
+                            <div className="font-medium">{item.menu_item?.name || 'Unknown item'}</div>
+                            <div className="text-sm text-muted-foreground">
+                              ₹{item.price} x {item.quantity}
+                            </div>
+                          </div>
+                          <div className="font-medium">
+                            ₹{(item.price * item.quantity).toFixed(0)}
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center">
-                      <IndianRupee className="h-3.5 w-3.5" />
-                      {order.total_amount.toFixed(2)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {format(new Date(order.created_at), "MMM d, yyyy h:mm a")}
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                        ${
-                          order.status === "pending"
-                            ? "bg-blue-100 text-blue-800"
-                            : order.status === "preparing"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : order.status === "delivered"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }
-                      `}
-                    >
-                      {order.status === "pending"
-                        ? "Pending"
-                        : order.status === "preparing"
-                        ? "Preparing"
-                        : order.status === "delivered"
-                        ? "Delivered"
-                        : "Cancelled"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={order.status}
-                      onValueChange={(value) => handleStatusChange(order.id, value)}
-                    >
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue placeholder="Change status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="preparing">Preparing</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

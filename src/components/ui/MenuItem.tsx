@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AnimatedImage } from "./AnimatedImage";
 import { MotionDiv } from "./MotionDiv";
@@ -32,6 +31,17 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
       toast({
         title: "Please sign in",
         description: "You need to be signed in to add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if item.id is a valid UUID format before proceeding
+    if (typeof item.id === 'string' && !item.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.log("Invalid UUID format for item:", item.id);
+      toast({
+        title: "Error",
+        description: "This item cannot be added to your cart at the moment.",
         variant: "destructive",
       });
       return;

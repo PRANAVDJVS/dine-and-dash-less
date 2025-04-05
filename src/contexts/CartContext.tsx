@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -73,6 +72,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       toast({
         title: 'Please sign in',
         description: 'You need to be signed in to add items to cart',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Validate the menu item has a valid UUID before proceeding
+    if (typeof menuItem.id !== 'string' || !menuItem.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error("Invalid menu item ID format:", menuItem.id);
+      toast({
+        title: 'Error',
+        description: 'This item cannot be added to your cart at the moment.',
         variant: 'destructive',
       });
       return;
