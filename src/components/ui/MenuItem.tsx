@@ -7,6 +7,7 @@ import { MenuItem as MenuItemType } from "@/types/database";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { IndianRupee, ShoppingCart } from "lucide-react";
+import { adaptMenuItemToDatabase } from "@/lib/menu-adapters";
 
 interface MenuItemProps {
   item: MenuItemType;
@@ -36,20 +37,30 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
       return;
     }
     
-    // Check if item.id is a valid UUID format before proceeding
-    if (typeof item.id === 'string' && !item.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.log("Invalid UUID format for item:", item.id);
-      toast({
-        title: "Error",
-        description: "This item cannot be added to your cart at the moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       setIsLoading(true);
-      await addToCart(item, 1);
+      
+      // Make sure we have a valid UUID formatted item before adding to cart
+      if (typeof item.id === 'string' && !item.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // If not a valid UUID, we need to adapt it first
+        const adaptedItem = adaptMenuItemToDatabase({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: item.price,
+          image: item.image || '',
+          categoryId: item.category_id,
+          vegetarian: item.vegetarian || false,
+          spicy: item.spicy || false,
+          popular: item.popular || false
+        });
+        
+        await addToCart(adaptedItem, 1);
+      } else {
+        // If it's already a valid UUID, add directly
+        await addToCart(item, 1);
+      }
+      
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart.`,

@@ -1,35 +1,40 @@
 
-import { MenuItem as MenuDataItem } from "@/lib/menu-data";
+import { MenuItem as LibMenuItem } from "@/lib/menu-data";
 import { MenuItem as DatabaseMenuItem } from "@/types/database";
+import { v4 as uuidv4 } from 'uuid';
 
-// Converts a menu-data MenuItem to a database MenuItem
-export function adaptMenuItemToDatabase(menuItem: MenuDataItem): DatabaseMenuItem {
-  return {
-    id: menuItem.id,
-    name: menuItem.name,
-    description: menuItem.description,
-    price: menuItem.price,
-    image: menuItem.image,
-    category_id: menuItem.category, // Using category as category_id
-    vegetarian: menuItem.vegetarian || false,
-    spicy: menuItem.spicy || false,
-    popular: menuItem.popular || false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
+// Map of string IDs to generated UUIDs to ensure consistency
+const idMapping: Record<string, string> = {};
+
+// Function to get a consistent UUID for a string ID
+function getConsistentUuid(stringId: string): string {
+  if (!idMapping[stringId]) {
+    // Generate a new UUID for this string ID
+    idMapping[stringId] = uuidv4();
+  }
+  return idMapping[stringId];
 }
 
-// Converts a database MenuItem to a menu-data MenuItem
-export function adaptDatabaseToMenuItem(dbItem: DatabaseMenuItem): MenuDataItem {
+// Adapts menu items from the static data to database format
+export function adaptMenuItemToDatabase(item: LibMenuItem): DatabaseMenuItem {
+  // Check if the item.id is already a valid UUID
+  const isValidUuid = typeof item.id === 'string' && 
+    item.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  
+  // If it's a valid UUID, use it; otherwise, generate a consistent UUID
+  const id = isValidUuid ? item.id : getConsistentUuid(item.id);
+  
   return {
-    id: dbItem.id,
-    name: dbItem.name,
-    description: dbItem.description || "",
-    price: dbItem.price,
-    image: dbItem.image || "",
-    category: dbItem.category_id,
-    vegetarian: dbItem.vegetarian,
-    spicy: dbItem.spicy,
-    popular: dbItem.popular
+    id,
+    name: item.name,
+    description: item.description || null,
+    price: typeof item.price === 'number' ? item.price : parseFloat(item.price),
+    image: item.image || null,
+    category_id: item.categoryId || '00000000-0000-0000-0000-000000000000', // Default category ID
+    vegetarian: item.vegetarian || false,
+    spicy: item.spicy || false,
+    popular: item.popular || false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 }

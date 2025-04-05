@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { AnimatedImage } from "@/components/ui/AnimatedImage";
@@ -42,11 +41,22 @@ export default function Index() {
     }
     
     try {
-      // Convert menu-data MenuItem to database MenuItem
+      // Convert menu-data MenuItem to database MenuItem with proper UUID
       const databaseItem = adaptMenuItemToDatabase(item);
       await addToCart(databaseItem, 1);
+      
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart.`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "There was an error adding this item to your cart.",
+        variant: "destructive",
+      });
     }
   };
   

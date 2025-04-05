@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem, MenuItem } from '@/types/database';
+import { v4 as uuidv4 } from 'uuid';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -77,24 +78,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // Validate the menu item has a valid UUID before proceeding
+    let validatedMenuItem = {...menuItem};
+    
     if (typeof menuItem.id !== 'string' || !menuItem.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error("Invalid menu item ID format:", menuItem.id);
-      toast({
-        title: 'Error',
-        description: 'This item cannot be added to your cart at the moment.',
-        variant: 'destructive',
-      });
-      return;
+      console.warn("Invalid menu item ID format, generating new UUID:", menuItem.id);
+      validatedMenuItem = {
+        ...menuItem,
+        id: uuidv4()
+      };
     }
 
     setLoading(true);
     try {
-      // Check if the item is already in the cart
-      const existingItem = cartItems.find(item => item.menu_item_id === menuItem.id);
+      const existingItem = cartItems.find(item => item.menu_item_id === validatedMenuItem.id);
       
       if (existingItem) {
-        // Update quantity if already in cart
         const { error } = await supabase
           .from('cart')
           .update({ quantity: existingItem.quantity + quantity })
@@ -102,7 +100,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           
         if (error) throw error;
         
-        // Update local state
         setCartItems(prevItems => 
           prevItems.map(item => 
             item.id === existingItem.id 
@@ -111,19 +108,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           )
         );
       } else {
-        // Add new item to cart
         const { data, error } = await supabase
           .from('cart')
           .insert({
             user_id: user.id,
-            menu_item_id: menuItem.id,
+            menu_item_id: validatedMenuItem.id,
             quantity,
           })
           .select(`*, menu_item:menu_items(*)`);
           
         if (error) throw error;
         
-        // Update local state
         if (data && data[0]) {
           setCartItems(prevItems => [...prevItems, data[0] as CartItem]);
         }
@@ -131,7 +126,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       
       toast({
         title: 'Added to cart',
-        description: `${quantity} x ${menuItem.name} added to your cart`,
+        description: `${quantity} x ${validatedMenuItem.name} added to your cart`,
       });
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -161,7 +156,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         
       if (error) throw error;
       
-      // Update local state
       setCartItems(prevItems => 
         prevItems.map(item => 
           item.id === cartItemId 
@@ -193,7 +187,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         
       if (error) throw error;
       
-      // Update local state
       setCartItems(prevItems => prevItems.filter(item => item.id !== cartItemId));
       
       toast({
@@ -224,7 +217,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         
       if (error) throw error;
       
-      // Update local state
       setCartItems([]);
       
       toast({
