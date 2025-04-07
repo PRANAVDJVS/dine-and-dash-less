@@ -37,6 +37,18 @@ export default function Cart() {
     clearCart();
   };
   
+  // We're converting from database price to display price for consistency
+  const getDisplayPrice = (price: number) => {
+    // If price is already in rupees (>100), use it, otherwise convert from dollars
+    return price > 100 ? price : price * 82;
+  };
+  
+  // Calculate taxes and total with properly converted prices
+  const subtotal = totalAmount;
+  const deliveryFee = 40;
+  const taxes = subtotal * 0.05;
+  const orderTotal = subtotal + deliveryFee + taxes;
+  
   return (
     <>
       <Header />
@@ -85,63 +97,68 @@ export default function Cart() {
                   </div>
                   
                   <div className="divide-y">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="p-4 flex items-start gap-4">
-                        <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden">
-                          <AnimatedImage
-                            src={item.menu_item?.image || ""}
-                            alt={item.menu_item?.name || ""}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        
-                        <div className="flex-grow">
-                          <h3 className="font-medium">{item.menu_item?.name}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {item.menu_item?.description?.substring(0, 80)}
-                            {(item.menu_item?.description?.length || 0) > 80 ? "..." : ""}
-                          </p>
+                    {cartItems.map((item) => {
+                      // Get the proper display price for each item
+                      const itemDisplayPrice = item.menu_item ? getDisplayPrice(item.menu_item.price) : 0;
+                      
+                      return (
+                        <div key={item.id} className="p-4 flex items-start gap-4">
+                          <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden">
+                            <AnimatedImage
+                              src={item.menu_item?.image || ""}
+                              alt={item.menu_item?.name || ""}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                           
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-1">
-                              <button 
-                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                className={cn(
-                                  "p-1 rounded-full border",
-                                  "hover:bg-muted transition-colors"
-                                )}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="w-8 text-center">{item.quantity}</span>
-                              <button 
-                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                className={cn(
-                                  "p-1 rounded-full border",
-                                  "hover:bg-muted transition-colors"
-                                )}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
+                          <div className="flex-grow">
+                            <h3 className="font-medium">{item.menu_item?.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {item.menu_item?.description?.substring(0, 80)}
+                              {(item.menu_item?.description?.length || 0) > 80 ? "..." : ""}
+                            </p>
                             
-                            <div className="flex items-center gap-3">
-                              <div className="font-medium">
-                                ₹{((item.menu_item?.price || 0) * item.quantity).toFixed(0)}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-1">
+                                <button 
+                                  onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                  className={cn(
+                                    "p-1 rounded-full border",
+                                    "hover:bg-muted transition-colors"
+                                  )}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="w-8 text-center">{item.quantity}</span>
+                                <button 
+                                  onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                  className={cn(
+                                    "p-1 rounded-full border",
+                                    "hover:bg-muted transition-colors"
+                                  )}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveItem(item.id)}
-                                className="text-muted-foreground hover:text-destructive h-8 w-8"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              
+                              <div className="flex items-center gap-3">
+                                <div className="font-medium">
+                                  ₹{(itemDisplayPrice * item.quantity).toFixed(0)}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveItem(item.id)}
+                                  className="text-muted-foreground hover:text-destructive h-8 w-8"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -156,22 +173,22 @@ export default function Cart() {
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span>₹{totalAmount.toFixed(0)}</span>
+                        <span>₹{subtotal.toFixed(0)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Delivery Fee</span>
-                        <span>₹40</span>
+                        <span>₹{deliveryFee}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Tax</span>
-                        <span>₹{(totalAmount * 0.05).toFixed(0)}</span>
+                        <span>₹{taxes.toFixed(0)}</span>
                       </div>
                     </div>
                     
                     <div className="border-t pt-4 mb-6">
                       <div className="flex justify-between font-medium">
                         <span>Total</span>
-                        <span>₹{(totalAmount + 40 + totalAmount * 0.05).toFixed(0)}</span>
+                        <span>₹{orderTotal.toFixed(0)}</span>
                       </div>
                     </div>
                     

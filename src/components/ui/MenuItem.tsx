@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { AnimatedImage } from "./AnimatedImage";
 import { MotionDiv } from "./MotionDiv";
@@ -49,7 +50,7 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
           description: item.description || '',
           price: item.price,
           image: item.image || '',
-          categoryId: item.category_id,
+          category: item.category_id, // Change categoryId to category to match our data structure
           vegetarian: item.vegetarian || false,
           spicy: item.spicy || false,
           popular: item.popular || false

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -46,10 +47,35 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  
+  // Add this state to force refresh when tab is selected
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Effect to detect tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Increment refresh trigger to force a refetch
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // This will detect if the component is mounted when already visible
+    if (document.visibilityState === 'visible') {
+      fetchOrders();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Add this effect to refetch when tab is returned to
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchOrders = async () => {
     try {

@@ -30,7 +30,7 @@ export function adaptMenuItemToDatabase(item: LibMenuItem): DatabaseMenuItem {
     description: item.description || null,
     price: typeof item.price === 'number' ? item.price : parseFloat(item.price),
     image: item.image || null,
-    category_id: item.categoryId || '00000000-0000-0000-0000-000000000000', // Default category ID
+    category_id: item.category || '00000000-0000-0000-0000-000000000000', // Map category to category_id
     vegetarian: item.vegetarian || false,
     spicy: item.spicy || false,
     popular: item.popular || false,
