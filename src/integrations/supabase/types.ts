@@ -62,6 +62,39 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          admin_email: string
+          created_at: string
+          email: string
+          id: string
+          is_read: boolean
+          message: string
+          name: string
+          subject: string
+        }
+        Insert: {
+          admin_email: string
+          created_at?: string
+          email: string
+          id?: string
+          is_read?: boolean
+          message: string
+          name: string
+          subject: string
+        }
+        Update: {
+          admin_email?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          name?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string

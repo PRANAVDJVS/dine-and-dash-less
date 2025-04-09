@@ -23,8 +23,10 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
   const { addToCart } = useCart();
   const { user } = useAuth();
   
+  // Store the original price and display price separately
+  const originalPrice = item.price;
   // Converting price to rupees for display (if not already converted)
-  const displayPrice = item.price > 100 ? item.price : item.price * 82;
+  const displayPrice = originalPrice > 100 ? originalPrice : originalPrice * 82;
   
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,9 +50,9 @@ export function MenuItem({ item, delay = 0, className, onClick }: MenuItemProps)
           id: item.id,
           name: item.name,
           description: item.description || '',
-          price: item.price,
+          price: originalPrice, // Use the original price without conversion
           image: item.image || '',
-          category: item.category_id, // Change categoryId to category to match our data structure
+          category: item.category_id, 
           vegetarian: item.vegetarian || false,
           spicy: item.spicy || false,
           popular: item.popular || false

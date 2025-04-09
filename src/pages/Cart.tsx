@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { Container } from "@/components/ui/Container";
 import { Header } from "@/components/layout/Header";
@@ -37,18 +36,22 @@ export default function Cart() {
     clearCart();
   };
   
-  // We're converting from database price to display price for consistency
-  const getDisplayPrice = (price: number) => {
-    // If price is already in rupees (>100), use it, otherwise convert from dollars
-    return price > 100 ? price : price * 82;
-  };
+  // Consistently calculate the subtotal directly from cart items
+  const subtotal = cartItems.reduce((total, item) => {
+    const itemPrice = item.menu_item?.price || 0;
+    return total + (itemPrice * item.quantity);
+  }, 0);
   
-  // Calculate taxes and total with properly converted prices
-  const subtotal = totalAmount;
+  // Use the correct subtotal for all calculations
   const deliveryFee = 40;
   const taxes = subtotal * 0.05;
   const orderTotal = subtotal + deliveryFee + taxes;
   
+  // Calculate display price for each item
+  const getDisplayPrice = (price: number) => {
+    return price > 100 ? price : price * 82;
+  };
+
   return (
     <>
       <Header />

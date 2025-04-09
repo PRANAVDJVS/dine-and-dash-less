@@ -24,14 +24,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Calculate derived values
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
   const totalAmount = cartItems.reduce(
     (total, item) => total + (item.menu_item?.price || 0) * item.quantity, 
     0
   );
 
-  // Fetch cart items when user changes
   useEffect(() => {
     if (user) {
       fetchCartItems();
@@ -87,6 +85,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         id: uuidv4()
       };
     }
+
+    const priceToStore = validatedMenuItem.price;
 
     setLoading(true);
     try {
