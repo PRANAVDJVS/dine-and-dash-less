@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -25,6 +26,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  // Ensure we're using the menu_item price directly (which is the original price)
   const totalAmount = cartItems.reduce(
     (total, item) => total + (item.menu_item?.price || 0) * item.quantity, 
     0

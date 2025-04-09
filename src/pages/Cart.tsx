@@ -36,18 +36,13 @@ export default function Cart() {
     clearCart();
   };
   
-  // Consistently calculate the subtotal directly from cart items
-  const subtotal = cartItems.reduce((total, item) => {
-    const itemPrice = item.menu_item?.price || 0;
-    return total + (itemPrice * item.quantity);
-  }, 0);
-  
-  // Use the correct subtotal for all calculations
+  // Use totalAmount directly from CartContext, which is properly calculated
+  const subtotal = totalAmount;
   const deliveryFee = 40;
   const taxes = subtotal * 0.05;
   const orderTotal = subtotal + deliveryFee + taxes;
   
-  // Calculate display price for each item
+  // Calculate display price for each item (for visual display only)
   const getDisplayPrice = (price: number) => {
     return price > 100 ? price : price * 82;
   };
